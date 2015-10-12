@@ -1,12 +1,12 @@
 import java.util.ArrayList;
 
 public class Driver {
-	final double PHI = 1;
+	final double PHI = .5;
 	final int SRVTIME1 = 5;
 	final int SRVTIME2 = 5;
 	final int BUFFER = 20;
 	final int LAMDA = 8;
-	final int NUMPKTS = 500;
+	final int NUMPKTS = 50;
 	final int NUMTOSKIP = 0;
 	
 	
@@ -49,11 +49,9 @@ public class Driver {
 		double firstTimeToTrack = 0;
 		while(!events.isEmpty()) {
 			Event e = findNextEvent();
-			System.out.println(e);
-			//System.out.println(buffer1Count);
 			currTime = e.time;
 			
-			
+			System.out.println(lastDepart);
 			if(e.pktNum == NUMTOSKIP) {	//reset stats while getting system to steady state
 				buffer1Dropped = 0;
 				buffer2Dropped = 0;
@@ -65,12 +63,9 @@ public class Driver {
 			}
 			
 			if(e.type.equals("arrival"))	{
-				//System.out.println("Packet arrived");
 				if(pktCount <= NUMPKTS) {
 					double nextPacketTime = getExponential(LAMDA);
-					//arrivalTimes.add(nextPacketTime);
-					//System.out.println("next arrival time: " + (nextPacketTime + currTime));
-					events.add(new Event(currTime + .125, "arrival", pktCount, -1));
+					events.add(new Event(currTime + nextPacketTime, "arrival", pktCount, -1));
 					pktCount++;
 				}
 				
@@ -78,35 +73,24 @@ public class Driver {
 				if(chance <= PHI) {
 					if(buffer1Count < BUFFER) {
 						buffer1Count++;
-						System.out.println("num on line1:" + buffer1Count);
 						double timeToWait = getExponential(SRVTIME1);
-						//serviceTimes.add(timeToWait);
-						//System.out.println("Departure time: " + (timeToWait + currTime));
-						events.add(new Event(lastDepart + .2, "departure", e.pktNum, 1));
-						lastDepart += .2;
+						events.add(new Event(lastDepart + timeToWait, "departure", e.pktNum, 1));
+						lastDepart += timeToWait;
 						serviceTimesBuf1.add(timeToWait);
-						//System.out.println("Packet arrived on line1");
 					}
 					else {
-						//System.out.println("Packet dropped on line1");
-						//System.out.println("Buffer 1 stats: " + buffer1Count);
 						buffer1Dropped++;
 					}
 				}
 				else {
 					if(buffer2Count < BUFFER) {
 						buffer2Count++;
-						//System.out.println("num on line2:" + buffer2Count);
 						double timeToWait = getExponential(SRVTIME2);
-						//serviceTimes.add(timeToWait);
-						//System.out.println("Departure Time: " + (timeToWait + currTime));
-						events.add(new Event(lastDepart + .2, "departure", e.pktNum, 2));
+						events.add(new Event(lastDepart + timeToWait, "departure", e.pktNum, 2));
+						lastDepart += timeToWait;
 						serviceTimesBuf2.add(timeToWait);
-						//System.out.println("Packet arrived on line2");
 					}
 					else {
-						//System.out.println("Packet dropped on line2");
-						//System.out.println("Buffer 2 stats: " + buffer2Count);
 						buffer2Dropped++;
 					}
 					
@@ -116,12 +100,10 @@ public class Driver {
 				if(e.lineNum == 1) {
 					buffer1Count--;
 					buffer1Serviced++;
-					//System.out.println("Packet departed on line1");
 				}
 				else if(e.lineNum == 2) {
 					buffer2Count--;
 					buffer2Serviced++;
-					//System.out.println("Packet departed on line2");
 				}
 				else {
 					System.out.println("Should never get here!");
