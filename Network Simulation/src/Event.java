@@ -12,4 +12,9 @@ public class Event {
 		this.lineNum = lineNum; // -1 for scheduling arrival
 		
 	}
+	
+	@Override
+	public String toString() {
+		return "TIME: " + time + "     TYPE: " + type + "     PKTNUM: " + pktNum + "     LINENUM: " + lineNum;
+	}
 }
