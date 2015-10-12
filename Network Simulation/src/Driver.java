@@ -1,16 +1,17 @@
 import java.util.ArrayList;
 
 public class Driver {
-	final double PHI = 0;
+	final double PHI = 1;
 	final int SRVTIME1 = 5;
 	final int SRVTIME2 = 5;
 	final int BUFFER = 20;
 	final int LAMDA = 8;
-	final int NUMPKTS = 50000000;
-	final int NUMTOSKIP = 500000;
+	final int NUMPKTS = 500;
+	final int NUMTOSKIP = 0;
 	
 	
 	double currTime;
+	double lastDepart;
 	ArrayList<Event> events;
 	int pktCount;
 	int buffer1Count;
@@ -23,6 +24,9 @@ public class Driver {
 	ArrayList<Double> serviceTimesBuf1;
 	ArrayList<Double> serviceTimesBuf2;
 	
+	//ArrayList<Double> serviceTimes;
+	//ArrayList<Double> arrivalTimes;
+	
 	
 	public void run() {
 		events.add(new Event(currTime, "arrival", pktCount, -1));
@@ -30,20 +34,27 @@ public class Driver {
 		
 		/**
 		double sum = 0;
+		int count = 0;
 		for(int i = 0; i < 50000; i++) {
 			double rand = getExponential(SRVTIME1);
-			System.out.println(sum);
+			if (rand > .125)
+				count++;
+			//System.out.println(rand);
 			sum+=rand;
-			System.out.println(sum/50000.0);
 		}
+		System.out.println(sum/50000.0);
+		System.out.println(count);
 		**/
 		
 		double firstTimeToTrack = 0;
 		while(!events.isEmpty()) {
 			Event e = findNextEvent();
+			System.out.println(e);
+			//System.out.println(buffer1Count);
 			currTime = e.time;
 			
-			if(e.pktNum <= NUMTOSKIP) {	//reset stats while getting system to steady state
+			
+			if(e.pktNum == NUMTOSKIP) {	//reset stats while getting system to steady state
 				buffer1Dropped = 0;
 				buffer2Dropped = 0;
 				buffer1Serviced = 0;
@@ -54,10 +65,12 @@ public class Driver {
 			}
 			
 			if(e.type.equals("arrival"))	{
+				//System.out.println("Packet arrived");
 				if(pktCount <= NUMPKTS) {
 					double nextPacketTime = getExponential(LAMDA);
-					//System.out.println("next arrival time: " + nextPacketTime);
-					events.add(new Event(currTime + nextPacketTime, "arrival", pktCount, -1));
+					//arrivalTimes.add(nextPacketTime);
+					//System.out.println("next arrival time: " + (nextPacketTime + currTime));
+					events.add(new Event(currTime + .125, "arrival", pktCount, -1));
 					pktCount++;
 				}
 				
@@ -65,10 +78,12 @@ public class Driver {
 				if(chance <= PHI) {
 					if(buffer1Count < BUFFER) {
 						buffer1Count++;
-						//System.out.println("num on line1:" + buffer1Count);
+						System.out.println("num on line1:" + buffer1Count);
 						double timeToWait = getExponential(SRVTIME1);
-						//System.out.println("Wait time: " + timeToWait);
-						events.add(new Event(currTime + timeToWait, "departure", e.pktNum, 1));
+						//serviceTimes.add(timeToWait);
+						//System.out.println("Departure time: " + (timeToWait + currTime));
+						events.add(new Event(lastDepart + .2, "departure", e.pktNum, 1));
+						lastDepart += .2;
 						serviceTimesBuf1.add(timeToWait);
 						//System.out.println("Packet arrived on line1");
 					}
@@ -81,10 +96,11 @@ public class Driver {
 				else {
 					if(buffer2Count < BUFFER) {
 						buffer2Count++;
-						System.out.println("num on line2:" + buffer2Count);
+						//System.out.println("num on line2:" + buffer2Count);
 						double timeToWait = getExponential(SRVTIME2);
-						//System.out.println("Wait time: " + timeToWait);
-						events.add(new Event(currTime + timeToWait, "departure", e.pktNum, 2));
+						//serviceTimes.add(timeToWait);
+						//System.out.println("Departure Time: " + (timeToWait + currTime));
+						events.add(new Event(lastDepart + .2, "departure", e.pktNum, 2));
 						serviceTimesBuf2.add(timeToWait);
 						//System.out.println("Packet arrived on line2");
 					}
@@ -93,6 +109,7 @@ public class Driver {
 						//System.out.println("Buffer 2 stats: " + buffer2Count);
 						buffer2Dropped++;
 					}
+					
 				}
 			}
 			else if(e.type.equals("departure")) {
@@ -106,6 +123,12 @@ public class Driver {
 					buffer2Serviced++;
 					//System.out.println("Packet departed on line2");
 				}
+				else {
+					System.out.println("Should never get here!");
+				}
+			}
+			else {
+				System.out.println("Should never get here!");
 			}
 			events.remove(e);
 		}
@@ -114,9 +137,11 @@ public class Driver {
 		System.out.println("Blocking probability, buffer 1: " + buffer1Dropped/(double)buffer1Serviced);
 		System.out.println("Blocking probability, buffer 2: " + buffer2Dropped/(double)buffer2Serviced);
 		System.out.println("Blocking probability, system: " + (buffer1Dropped+buffer2Dropped)/(double)NUMPKTS);
+		System.out.println("=========================================================");
 		System.out.println("Average delay, buffer 1: " + serviceTimesBuf1.stream().mapToDouble(Double::doubleValue).sum()/buffer1Serviced);
 		System.out.println("Average delay, buffer 2: " + serviceTimesBuf2.stream().mapToDouble(Double::doubleValue).sum()/buffer2Serviced);
-		System.out.println("Average delay, system: " + (serviceTimesBuf1.stream().mapToDouble(Double::doubleValue).sum() + serviceTimesBuf2.stream().mapToDouble(Double::doubleValue).sum()) / NUMPKTS);
+		System.out.println("Average delay, system: " + (serviceTimesBuf1.stream().mapToDouble(Double::doubleValue).sum() + serviceTimesBuf2.stream().mapToDouble(Double::doubleValue).sum()) / (buffer1Serviced + buffer2Serviced));
+		System.out.println("=========================================================");
 		System.out.println("Throughput, buffer1: " + buffer1Serviced / (currTime - firstTimeToTrack));
 		System.out.println("Throughput, buffer2: " + buffer2Serviced / (currTime - firstTimeToTrack));
 		System.out.println("Throughput, system: " + (buffer1Serviced + buffer2Serviced) / (currTime - firstTimeToTrack));
@@ -125,7 +150,12 @@ public class Driver {
 		System.out.println("Dropped on 2:" + buffer2Dropped);
 		System.out.println("Buffer 1 Serviced: " + buffer1Serviced);
 		System.out.println("Buffer 2 Serviced: " + buffer2Serviced);
-		System.out.println(currTime);
+		//System.out.println(currTime);
+		
+		//System.out.println("Service Times::::::");
+		//System.out.println(serviceTimes.stream().mapToDouble(Double::doubleValue).sum() / 150000);
+		//System.out.println("Arrival Times::::::");
+		//System.out.println(arrivalTimes.stream().mapToDouble(Double::doubleValue).sum() / 150000);
 	}
 	
 	public Event findNextEvent() {
@@ -162,6 +192,7 @@ public class Driver {
 	
 	public Driver() {
 		currTime = 0.0;
+		lastDepart = 0.0;
 		buffer1Dropped = 0;
 		buffer2Dropped = 0;
 		events = new ArrayList<Event>();
@@ -172,6 +203,10 @@ public class Driver {
 		buffer2Serviced = 0;
 		serviceTimesBuf1 = new ArrayList<Double>();
 		serviceTimesBuf2 = new ArrayList<Double>();
+		
+		
+		//serviceTimes = new ArrayList<Double>();
+		//arrivalTimes = new ArrayList<Double>();
 		
 		run();
 	}
