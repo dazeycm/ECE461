@@ -33,6 +33,7 @@ public class Driver {
 		while(!events.isEmpty()) {
 			Event e = findNextEvent();
 			currTime = e.time;
+			
 			if(e.pktNum == NUMTOSKIP) {	//reset stats while getting system to steady state
 				buffer1Dropped = 0;
 				buffer2Dropped = 0;
@@ -96,10 +97,9 @@ public class Driver {
 			events.remove(e);
 		}
 		
-		
-		System.out.println("Blocking probability, buffer 1: " + buffer1Dropped/(double)(NUMPKTS - NUMTOSKIP));
-		System.out.println("Blocking probability, buffer 2: " + buffer2Dropped/(double)(NUMPKTS - NUMTOSKIP));
-		System.out.println("Blocking probability, system: " + (buffer1Dropped+buffer2Dropped)/(double)(NUMPKTS - NUMTOSKIP));
+		System.out.println("Blocking probability, buffer 1: " + (double)buffer1Dropped/(double)((double)NUMPKTS - (double)NUMTOSKIP));
+		System.out.println("Blocking probability, buffer 2: " + (double)buffer2Dropped/(double)((double)NUMPKTS - (double)NUMTOSKIP));
+		System.out.println("Blocking probability, system: " + ((double)buffer1Dropped+(double)buffer2Dropped)/(double)((double)NUMPKTS - (double)NUMTOSKIP));
 		System.out.println("=========================================================");
 		System.out.println("Average delay, buffer 1: " + serviceTimesBuf1.stream().mapToDouble(Double::doubleValue).sum()/buffer1Serviced);
 		System.out.println("Average delay, buffer 2: " + serviceTimesBuf2.stream().mapToDouble(Double::doubleValue).sum()/buffer2Serviced);
@@ -109,11 +109,10 @@ public class Driver {
 		System.out.println("Throughput, buffer2: " + buffer2Serviced / (currTime - firstTimeToTrack));
 		System.out.println("Throughput, system: " + (buffer1Serviced + buffer2Serviced) / (currTime - firstTimeToTrack));
 		System.out.println("=========================================================");
-		System.out.println("Average num packets, line1: " + ((LAMDA*PHI) * (1 -  (buffer1Dropped/(double)(NUMPKTS - NUMTOSKIP))) *  serviceTimesBuf1.stream().mapToDouble(Double::doubleValue).sum()/buffer1Serviced));
-		System.out.println("Average num packets, line1: " + ((LAMDA*(1-PHI)) * (1 -  (buffer2Dropped/(double)(NUMPKTS - NUMTOSKIP))) *  serviceTimesBuf2.stream().mapToDouble(Double::doubleValue).sum()/buffer2Serviced));
-		System.out.println("Average num packets, system: " +  (LAMDA * (1 -  (buffer1Dropped+buffer2Dropped)/(double)(NUMPKTS - NUMTOSKIP)) *  (serviceTimesBuf1.stream().mapToDouble(Double::doubleValue).sum() + serviceTimesBuf2.stream().mapToDouble(Double::doubleValue).sum()) / (double)(buffer1Serviced + buffer2Serviced)));
+		System.out.println("Average num packets, line1: " + ((LAMDA*PHI) * (1 -  ((double)buffer1Dropped/(double)((double)NUMPKTS - (double)NUMTOSKIP))) *  serviceTimesBuf1.stream().mapToDouble(Double::doubleValue).sum()/buffer1Serviced));
+		System.out.println("Average num packets, line1: " + ((LAMDA*(1-PHI)) * (1 -  (buffer2Dropped/(double)((double)NUMPKTS - (double)NUMTOSKIP))) *  serviceTimesBuf2.stream().mapToDouble(Double::doubleValue).sum()/buffer2Serviced));
+		System.out.println("Average num packets, system: " +  (LAMDA * (1 -  ((double)buffer1Dropped+buffer2Dropped)/(double)((double)NUMPKTS - (double)NUMTOSKIP)) *  (serviceTimesBuf1.stream().mapToDouble(Double::doubleValue).sum() + serviceTimesBuf2.stream().mapToDouble(Double::doubleValue).sum()) / (double)(buffer1Serviced + buffer2Serviced)));
 		
-		System.out.println(currTime);
 	}
 	
 	public Event findNextEvent() {
